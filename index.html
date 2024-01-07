@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share by C2L | Your Digital NFC Enabled Visiting Card</title>
+    <meta name="description" content="Digitize your visiting card with our NFC enabled card. Share your details with a tap only.">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.5.0/backbone-min.js"></script>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css" />
+    <link id="link-rel" rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-teal.css"  />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/style.css" />
+    <script src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" />
+    <link rel="shortcut icon" href="/logo.png" type="image/x-icon" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" integrity="sha512-9KkIqdfN7ipEW6B6k+Aq20PV31bjODg4AA52W+tYtAE0jE0kMx49bjJ3FgvS56wzmyfMUHbQ4Km2b7l9+Y/+Eg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.css" integrity="sha512-bs9fAcCAeaDfA4A+NiShWR886eClUcBtqhipoY5DM60Y1V3BbVQlabthUBal5bq8Z8nnxxiyb1wfGX2n76N1Mw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="header" class="w3-bar w3-card-4 w3-theme">
+        <a href="#" class="w3-bar-item w3-button title"><span class="logo">
+            <svg id="Layer_1" viewBox="0 0 330 330">
+                <g id="XMLID_2_">
+                    <path id="XMLID_4_" d="M315,0H15C6.716,0,0,6.716,0,15v300c0,8.284,6.716,15,15,15h300c8.284,0,15-6.716,15-15V15
+                        C330,6.716,323.284,0,315,0z M300,300H30V30h270V300z"></path>
+                    <path id="XMLID_7_" d="M75,270h180c8.284,0,15-6.716,15-15V75c0-8.284-6.716-15-15-15h-90c-8.284,0-15,6.716-15,15v47.58
+                        c-17.459,6.192-30,22.865-30,42.42c0,24.813,20.186,45,45,45s45-20.187,45-45c0-19.555-12.541-36.227-30-42.42V90h60v150H90V90h5
+                        c8.284,0,15-6.716,15-15s-6.716-15-15-15H75c-8.284,0-15,6.716-15,15v180C60,263.284,66.716,270,75,270z M165,180
+                        c-8.271,0-15-6.729-15-15s6.729-15,15-15s15,6.729,15,15S173.271,180,165,180z"></path>
+                </g>
+            </svg>
+        </span>
+             Share by C2L</a>
+        <button class="w3-bar-item w3-button w3-right logout-btn" id="btn-logout">Logout</button>
+    </div>
+    <div id="spinner" class="view">
+        <div class="w3-spin w3-xlarge">
+            <i class="fa fa-refresh"></i>
+        </div>
+    </div>
+    <div id="auth" class="view">
+        <div class="w3-container w3-padding-16 login-box box">
+            <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
+                <div class="w3-center">
+                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
+                </div>
+
+                <h3 class="w3-container">Login to Share by C2L account</h3>
+
+                <form class="w3-container login-form" action="#" method="post">
+                    <div class="w3-section">
+                        <label>Email</label>
+                        <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
+                        <label>Password</label>
+                        <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
+                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge submit-btn">Login</button>
+                    </div>
+                </form>
+                
+                <div class="w3-container w3-padding-16 alert w3-hide">
+                    <div class="w3-container w3-padding w3-round-xxlarge w3-red"></div>
+                </div>
+                    
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button class="w3-left w3-button w3-round-xxlarge w3-theme register-btn">Register</button>
+                    <button class="w3-right w3-button w3-round-xxlarge password-reset-btn">Forgot password?</button>
+                </div>
+            </div>
+        </div>
+        <div class="w3-container w3-padding-16 register-box box">
+            <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
+                <div class="w3-center">
+                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
+                </div>
+
+                <h3 class="w3-container">Register to Share by C2L account</h3>
+            
+                <form class="w3-container register-form" action="#" method="post">
+                    <div class="w3-section">
+                        <label>Email</label>
+                        <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
+                        <label>Password</label>
+                        <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
+                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge submit-btn">Register</button>
+                    </div>
+                </form>
+
+                <div class="w3-container w3-padding-16 alert w3-hide">
+                    <div class="w3-container w3-padding w3-round-xxlarge w3-red"></div>
+                </div>
+        
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button class="w3-left w3-button w3-round-xxlarge w3-theme login-btn">Login</button>
+                    <button class="w3-right w3-button w3-round-xxlarge password-reset-btn">Forgot password?</button>
+                </div>
+            </div>
+        </div>
+        <div class="w3-container w3-padding-16 password-reset-box box">
+            <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
+                <div class="w3-center">
+                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
+                </div>
+
+                <h3 class="w3-container">Reset password of your Share by C2L account</h3>
+            
+                <form class="w3-container login-form" action="#" method="post">
+                    <div class="w3-section">
+                        <label>Email</label>
+                        <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
+                        <label>Verification Code</label>
+                        <input class="w3-input w3-border w3-round-xxlarge" type="text" placeholder="Enter Verification Code" name="verification_code" required>
+                        <label>Password</label>
+                        <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
+                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge">Update password</button>
+                    </div>
+                </form>
+        
+                <div class="w3-container w3-border-top w3-padding-16 w3-light-grey">
+                    <button class="w3-left w3-button w3-round-xxlarge w3-theme login-btn">Login</button>
+                    <button class="w3-right w3-button w3-round-xxlarge password-reset-btn">Forgot password?</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="profile-chooser" class="view">
+        <div class="w3-container w3-padding-16">
+            <div class="w3-center">
+                <a href="#profile/0" class="w3-button w3-theme w3-round-xxlarge"><i class="fa fa-plus"></i> Create new profile</a>
+            </div>
+            <ul id="profile-list" class="w3-border w3-ul w3-round-xxlarge w3-margin-top "></ul>
+        </div>
+    </div>
+    <div id="profile" class="view w3-text-theme">
+        <div class="w3-container w3-padding-16">
+            <div class="w3-round-xxlarge w3-white image-card">
+                <div class="w3-display-container">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver" class="w3-circle avatar" alt="Avatar of person" />
+                    <button class="open-photo-editor w3-display-bottomright w3-card w3-xlarge w3-circle w3-button w3-theme"><i class="fa fa-pencil"></i></button>
+                </div>
+            </div>
+            <select id="profile-theme" class="w3-margin-top w3-round-xxlarge w3-select w3-border">
+                <option value='https://www.w3schools.com/lib/w3-theme-red.css'>Red</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-pink.css'>Pink</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-purple.css'>Purple</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-deep-purple.css'>Deep Purple</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-indigo.css'>Indigo</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-blue.css'>Blue</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-light-blue.css'>Light Blue</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-cyan.css'>Cyan</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-teal.css'>Teal</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-green.css'>Green</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-light-green.css'>Light Green</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-lime.css'>Lime</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-khaki.css'>Khaki</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-yellow.css'>Yellow</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-amber.css'>Amber</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-orange.css'>Orange</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-deep-orange.css'>Deep Orange</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-blue-grey.css'>Blue Grey</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-brown.css'>Brown</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-grey.css'>Grey</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-dark-grey.css'>Dark Grey</option>
+                <option value='https://www.w3schools.com/lib/w3-theme-black.css'>Black</option>
+            </select>
+            <div class="w3-modal photo-editor">
+                <div class="w3-modal-content w3-animate-zoom">
+                    <div class="w3-container w3-theme">
+                        <p>Select photo</p>
+                    </div>
+                    <div class="w3-container w3-padding-16">
+                        <input type="file" name="image" class="image w3-input w3-round-xxlarge w3-border" />
+
+                        <div class="w3-margin-bottom">
+                            <img src="" id="input-image" style="width: 100%; display: block; box-sizing: border-box;" alt="">
+                        </div>
+                        <button class="w3-button w3-theme w3-round-xxlarge crop">Crop</button>
+                        <button class="w3-button w3-round-xxlarge crop w3-margin-left close-photo-editor">Cancel</button>
+                        <div class="w3-panel alert w3-theme-d5 w3-hide w3-margin-top w3-margin-bottom w3-round-xxlarge">
+                            <p></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="basic-info w3-container w3-center">
+                <div class="w3-xxlarge">
+                    <input type="text" value="" name="name" class="w3-input name"/>
+                </div>
+                <div class="w3-large"><input type="text" value="" name="about" class="w3-input about"/></div>
+            </div>
+            <div class="w3-section"></div>
+            <h3 class="w3-container">Social</h3>
+            <div class="social-btns">
+                <div class="btn-wrapper">
+                    <div class="btns"></div>
+                    <div class="w3-center">
+                        <button class="w3-xlarge w3-circle w3-button w3-theme add"><i class="fa fa-plus"></i></button>
+                    </div>
+                </div>
+                <div class="w3-modal add-social">
+                    <div class="w3-modal-content w3-animate-zoom">
+                        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Social Button</div>
+                        <div class="w3-container w3-padding-16">
+                            <form action="#">
+                                <label>Link type</label>
+                                <select name="type" class="w3-select w3-border w3-round-xxlarge"></select>
+                                <div class="w3-section"></div>
+                                <label>URL</label>
+                                <input type="url" name="url" class="w3-input w3-border w3-round-xxlarge" />
+                                <div class="w3-section"></div>
+                                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+                            </form>    
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-section"></div>
+            <h3 class="w3-container">Contacts</h3>
+            <div class="contact-btns w3-bar-block w3-border w3-round-xxlarge">
+                <div class="btns"></div>
+                <div class='w3-center w3-margin-bottom w3-margin-top'>
+                    <button class="w3-button w3-round-xxlarge w3-theme add"><i class="fa fa-plus"></i> Add new contact</button>
+                </div>
+                <div class="w3-modal add-contact">
+                    <div class="w3-modal-content w3-animate-zoom">
+                        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Contact Button</div>
+                        <div class="w3-container w3-padding-16">
+                            <form action="#">
+                                <label>Type</label>
+                                <select name="type" class="w3-select w3-border w3-round-xxlarge"></select>
+                                <div class="w3-section"></div>
+                                <label>Value</label>
+                                <input type="text" name="value" class="w3-input w3-border w3-round-xxlarge" />
+                                <div class="w3-section"></div>
+                                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+                            </form>    
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-section"></div>
+            <h3 class="w3-container">Links</h3>
+            <div class="link-btns w3-bar-block w3-border w3-round-xxlarge">
+                <div class="btns"></div>
+                <div class='w3-center w3-margin-bottom w3-margin-top'>
+                    <button class="w3-round-xxlarge w3-button w3-theme add"><i class="fa fa-plus"></i> Add new link</button>
+                </div>
+                <div class="w3-modal add-link">
+                    <div class="w3-modal-content w3-animate-zoom">
+                        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Link</div>
+                        <div class="w3-container w3-padding-16">
+                            <form action="#">
+                                <label>Title</label>
+                                <input type="text" name="title" class="w3-input w3-border w3-round-xxlarge" />
+                                <div class="w3-section"></div>
+                                <label>URL</label>
+                                <input type="text" name="url" class="w3-input w3-border w3-round-xxlarge" />
+                                <div class="w3-section"></div>
+                                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+                            </form>    
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-modal" id="confirm-deletion">
+                <div class="w3-modal-content w3-animate-zoom">
+                    <div class="w3-theme w3-xlarge w3-container w3-padding"><i class="fa fa-warning"></i></div>
+                    <div class="w3-container">
+                        <p>Are you sure to delete this profile?</p>
+                        <div class="w3-bar w3-margin-bottom">
+                            <button class="w3-button w3-right w3-round-xxlarge deletion-confirmed">Delete</button>
+                            <button class="w3-button w3-right w3-round-xxlarge w3-theme w3-margin-right deletion-cancelled">Don't delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-modal" id="qr-scan-modal">
+                <div class="w3-modal-content w3-animate-zoom w3-round-xxlarge w3-container w3-padding-16">
+                    <div id="reader"></div>
+                    <p class="w3-margin-top">Mappings</p>
+                    <ul id="mappings" class="w3-margin-bottom w3-ul w3-border"></ul>
+                    <div class="alert w3-container w3-padding-16 w3-theme-dark w3-round-xxlarge"></div>
+                    <div class="w3-margin-top">
+                        <button class="w3-button w3-round-xxlarge w3-theme cancel">Close</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="w3-bottom w3-theme-l3 footer">
+            <button class="w3-button w3-theme w3-round-xxlarge configure w3-card-4"><i class="fa fa-cogs"></i> Configure</button>
+            <button class="w3-button w3-theme w3-round-xxlarge save w3-card-4"><i class="fa fa-save"></i> Save</button>
+        </div>
+    </div>
+
+    <div id="public-profile" class="view w3-text-theme">
+        <div class="w3-container w3-padding-16">
+            <div class="w3-round-xxlarge w3-white image-card">
+                <div class="w3-display-container">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver" class="w3-circle avatar" alt="Avatar of person" />
+                </div>
+            </div>
+            <div class="w3-center w3-margin-bottom w3-margin-top">
+                <a class="w3-button w3-round-xxlarge w3-theme w3-tiny download-btn"><i class="fa fa-download"></i> Add to contact</a>
+                <button class="w3-button w3-round-xxlarge w3-theme w3-tiny share-btn"><i class="fa fa-share-alt"></i> Share</button>
+            </div>
+            <div class="basic-info w3-container w3-center">
+                <div class="w3-xxlarge name"></div>
+                <div class="w3-large about"></div>
+            </div>
+
+            <section id="social" class="w3-margin-top">
+                <div class="social-btns">
+                    <div class="btns"></div>
+                </div>
+            </section>
+
+            <section id="contact" class="w3-margin-top">
+                <div class="contact-btns w3-card w3-bar-block w3-round-xxlarge">
+                    <div class="btns"></div>
+                </div>
+            </section>
+
+            <section id="link">
+                <div class="w3-section"></div>
+                <h3 class="w3-container">Links</h3>
+                <div class="link-btns w3-card-4 w3-bar-block w3-round-xxlarge">
+                    <div class="btns"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+</body>
+<script src="/app.js"></script>
+</html>
