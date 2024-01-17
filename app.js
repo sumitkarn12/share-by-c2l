@@ -11,8 +11,10 @@ const Authorize = Backbone.View.extend({
         "click .login-btn": "openLogin",
         "click .register-btn": "openRegister",
         "click .password-reset-btn": "openPasswordReset",
+        "click .send-code-btn": "sendCode",
         "submit .login-form": "login",
-        "submit .register-form": "register"
+        "submit .register-form": "register",
+        "submit .password-reset-form": "resetPassword"
     },
     openLogin: function( e ) {
         e.preventDefault();
@@ -27,6 +29,41 @@ const Authorize = Backbone.View.extend({
         e.preventDefault();
         this.$el.find('.box').hide();
         this.$el.find('.password-reset-box').show();
+    },
+    sendCode: function( ev ) {
+        ev.preventDefault();
+        const self = this;
+        let email = self.$el.find( '.password-reset-box [name=email]' ).val();
+        console.log( email );
+        ev.currentTarget.innerHTML = 'Sending code'
+        fetch( apiUrl+"/auth/send-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email })
+        }).then( r => r.json() ).then( res => {
+            ev.currentTarget.remove();
+            console.log( res )
+            alert('Please check your email.')
+        });
+    },
+    resetPassword: function( ev ) {
+        ev.preventDefault();
+        const self = this;
+        let obj = {};
+        self.el.querySelectorAll( '.password-reset-box input' ).forEach( i => {
+            obj[i.getAttribute('name')] = i.value;
+        });
+        console.log( obj );
+        $(ev.currentTarget.querySelector('.update-password-btn')).prepend( `<i class="fa fa-refresh w3-spin"></i> ` );
+        fetch( apiUrl+"/auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify( obj )
+        }).then( r => r.json() ).then( res => {
+            $(ev.currentTarget.querySelector('.update-password-btn .fa')).remove();
+            alert( res.message );
+            console.log( res );
+        });        
     },
     login: function( ev ) {
         ev.preventDefault();
@@ -770,7 +807,7 @@ const PublicProfileView = Backbone.View.extend({
                 let a = "";
                 self.model.get('contacts').forEach( r => {
                     if( r.type =='envelope' )
-                        a += `EMAIL;TYPE=home:${r.value}`
+                        a += `EMAIL;TYPE=home:${r.value}\n`
                 });
                 return a;
             },
@@ -778,7 +815,7 @@ const PublicProfileView = Backbone.View.extend({
                 let a = "";
                 self.model.get('contacts').forEach( r => {
                     if( r.type =='link' )
-                        a += `URL;TYPE=home:${r.value}\n`
+                        a += `URL;TYPE=work:${r.value}\n`
                 });
                 self.model.get('links').forEach( r => {
                     a += `URL;TYPE=work:${r.url}\n`
@@ -786,14 +823,15 @@ const PublicProfileView = Backbone.View.extend({
                 return a;
             }
         }
-        let template = `BEGIN:VCARD
-        VERSION:4.0
-        ${VCF.getName()}
-        ${VCF.getTitle()}
-        ${VCF.getPhone()}
-        ${VCF.getEmail()}
-        ${VCF.getWebsite()}
-        END:VCARD`;
+        let template = "BEGIN:VCARD\n";
+        template += "VERSION:4.0\n";
+        template += VCF.getName()
+        template += VCF.getTitle()
+        template += VCF.getPhone()
+        template += VCF.getEmail()
+        template += VCF.getWebsite()
+        template += "END:VCARD";
+
         self.$el.find('.download-btn').attr( 'download', btoa(self.model.get('info').name)+".vcf" );
         let url = URL.createObjectURL( new Blob( [template], {type:'text/vcard'} ) );
         self.$el.find('.download-btn').attr( 'href', url );

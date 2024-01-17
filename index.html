@@ -51,11 +51,7 @@
     <div id="auth" class="view">
         <div class="w3-container w3-padding-16 login-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <div class="w3-center">
-                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
-                </div>
-
-                <h3 class="w3-container">Login to Share by C2L account</h3>
+                <h3 class="w3-container">Login to account</h3>
 
                 <form class="w3-container login-form" action="#" method="post">
                     <div class="w3-section">
@@ -79,11 +75,7 @@
         </div>
         <div class="w3-container w3-padding-16 register-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <div class="w3-center">
-                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
-                </div>
-
-                <h3 class="w3-container">Register to Share by C2L account</h3>
+                <h3 class="w3-container">Register to account</h3>
             
                 <form class="w3-container register-form" action="#" method="post">
                     <div class="w3-section">
@@ -107,21 +99,22 @@
         </div>
         <div class="w3-container w3-padding-16 password-reset-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <div class="w3-center">
-                    <img src="https://www.w3schools.com/w3css/img_avatar4.png" alt="Avatar" class="w3-circle avatar w3-margin-top">
-                </div>
-
-                <h3 class="w3-container">Reset password of your Share by C2L account</h3>
+                <h3 class="w3-container">Reset password of your account</h3>
             
-                <form class="w3-container login-form" action="#" method="post">
+                <form class="w3-container password-reset-form" action="#" method="post">
                     <div class="w3-section">
                         <label>Email</label>
-                        <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
+                        <div class="w3-display-container">
+                            <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
+                            <div class="w3-display-right">
+                                <button class="w3-button w3-theme send-code-btn">Send code</button>
+                            </div>
+                        </div>
                         <label>Verification Code</label>
                         <input class="w3-input w3-border w3-round-xxlarge" type="text" placeholder="Enter Verification Code" name="verification_code" required>
                         <label>Password</label>
                         <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
-                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge">Update password</button>
+                        <button class="w3-button w3-right w3-green w3-section update-password-btn w3-padding w3-round-xxlarge">Update password</button>
                     </div>
                 </form>
         
