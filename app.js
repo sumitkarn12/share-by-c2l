@@ -16,6 +16,9 @@ const Authorize = Backbone.View.extend({
         "submit .register-form": "register",
         "submit .password-reset-form": "resetPassword"
     },
+    isLoggedIn: function() {
+        return ( localStorage.getItem("auth-token") && localStorage.getItem("auth-token").length > 14 );
+    },
     openLogin: function( e ) {
         e.preventDefault();
         this.render();
@@ -81,8 +84,8 @@ const Authorize = Backbone.View.extend({
             if( res.jwt ) {
                 localStorage.setItem("auth-token", res.jwt );
                 setTimeout( () => {
-                    route.navigate("/", {trigger: true});
-                    header.initialize();
+                    console.log( "Routing to homepage" )
+                    router.navigate("/profiles");
                 }, 1000)
             } else {
                 self.$el.find(".login-box .alert").removeClass("w3-hide").find("div").html(res.message);
@@ -108,7 +111,7 @@ const Authorize = Backbone.View.extend({
             if( res.jwt ) {
                 localStorage.setItem("auth-token", res.jwt );
                 setTimeout( () => {
-                    route.navigate("/", {trigger: true});
+                    router.navigate("/");
                 }, 1000)
             }
             self.$el.find(".register-box .alert").removeClass("w3-hide w3-red").find("div").html(res.message);
@@ -155,7 +158,7 @@ const ProfileChooserView = Backbone.View.extend({
         <span class='w3-bar-item'>
             <span class='w3-large'><%= info.name %></span><br>
             <span class='w3-tiny'><%= info.about %></span><br>
-            <a href="#profile/<%=id%>" class='w3-card w3-theme w3-round-xxlarge w3-button'><i class="fa fa-pencil"></i> Edit</a>
+            <a href="/profile/<%=id%>" data-navigo class='w3-card w3-theme w3-round-xxlarge w3-button'><i class="fa fa-pencil"></i> Edit</a>
             <a data-id='<%=id%>' class='w3-round-xxlarge w3-button delete-profile'><i class="fa fa-trash"></i> Delete</a>
         </span>  
     </li>`),
@@ -167,14 +170,13 @@ const ProfileChooserView = Backbone.View.extend({
     },
     render: function() {
         const self = this;
-        if ( localStorage.getItem("auth-token") == null ) {
-            route.navigate( "auth", { trigger:true });
-            throw new Error("Not Authenticated");
-        }
         $('.view').hide();
         this.$el.show();
         this.model.reset();
         this.model.fetch({
+            success: function() {
+                router.updatePageLinks();
+            },
             error: function() {
                 self.$el.find('.loader').remove();
                 self.$el.find('#profile-list').html( `<li class='w3-large'>No profile to show. Create a new profile.</li>` );
@@ -182,7 +184,6 @@ const ProfileChooserView = Backbone.View.extend({
         });
     },
     reset: function( a ) {
-        console.log( `Resetting profile chooser: ${a.toJSON()}` );
         this.$el.find("#profile-list").empty();
         this.$el.find("#profile-list").append( `<li class='loader w3-center'>
             <div class='w3-xxlarge'><i class='fa fa-spin fa-refresh'></i></div>
@@ -212,15 +213,13 @@ const Header = Backbone.View.extend({
     },
     logout: function() {
         localStorage.clear();
-        location.href = "/";
+        router.navigate("/");
     },
-    initialize: function() {
-        this.$el.show();
-        if ( localStorage.getItem("auth-token") ){
-            this.$el.find(".logout-btn").show();
-        } else {
-            this.$el.find(".logout-btn").hide();
-        }
+    render: function( hide ) {
+        if ( hide )
+            this.$el.hide();
+        else
+            this.$el.show();
     }
 });
 
@@ -574,8 +573,7 @@ const ProfileView = Backbone.View.extend({
         this.model.destroy({
             success: function() {
                 $(ev.currentTarget).find(".fa").remove();
-                location.href = "/"
-                // route.navigate("", { trigger: true});
+                router.navigate("/");
             },
             error: function() {
                 $(ev.currentTarget).find(".fa").remove();
@@ -590,7 +588,6 @@ const ProfileView = Backbone.View.extend({
     updateTheme: function( ev ) {
         ev.preventDefault();
         let themeUrl = ev.currentTarget.value;
-        console.log( themeUrl )
         let themeLink = document.querySelector('#link-rel');
         themeLink.setAttribute('href', themeUrl );
     },
@@ -614,7 +611,7 @@ const ProfileView = Backbone.View.extend({
             success: function() {
                 $(ev.currentTarget).find('.fa').remove();
                 self.model.fetch();
-                route.navigate("/", {trigger:true})
+                router.navigate("/");
             },
             error: function() {
                 $(ev.currentTarget).find('.fa').remove();
@@ -707,7 +704,6 @@ const ProfileView = Backbone.View.extend({
         });
     }
 });
-
 const PublicProfileView = Backbone.View.extend({
     el: "#public-profile",
     socialTemplte: _.template(`<a target="_blank" href="<%= url %>" class="w3-xlarge w3-card w3-circle w3-button w3-theme"><i class="fa fa-<%= icon %>"></i></a>`),
@@ -749,6 +745,9 @@ const PublicProfileView = Backbone.View.extend({
 
         this.$el.find('.btns').empty();
         this.renderSocialMedia().renderContacts().renderLinks();
+
+        document.querySelector('title').innerText = `${this.model.get('info').name} || ${this.model.get('info').about}`;
+        document.querySelector('meta[name=description]').getAttribute('content', this.model.get('info').about);
 
         return this;
     },
@@ -850,57 +849,78 @@ const PublicProfileView = Backbone.View.extend({
 const loader = new Spinner();
 var profileChooser = null; 
 const header = new Header();
-const authView = new Authorize();
 var profileView = null;
 var publicProfileView = null;
 
+const Util = {
+    authView: null,
+    profilesView: null,
+    profileView: null,
+    header: null,
+    publicProfileView: null,
+    getAuth: function() {
+        if ( !this.authView )
+            this.authView = new Authorize();
+        return this.authView;
+    },
+    getHeader: function() {
+        if ( !this.header )
+            this.header = new Header();
+        return this.header;
+    },
+    getProfiles: function() {
+        if ( !this.profilesView )
+            this.profilesView = new ProfileChooserView();
+        return this.profilesView;
+    },
+    getProfile: function() {
+        if ( !this.profileView )
+            this.profileView = new ProfileView();
+        return this.profileView;
+    },
+    getPublicProfile: function() {
+        if ( !this.publicProfileView )
+            this.publicProfileView = new PublicProfileView();
+        return this.publicProfileView;
+    }
+}
+
 loader.render();
-const Router = Backbone.Router.extend({
-    routes: {
-        "": "homepage",
-        "auth": "auth",
-        "profile-chooser": "profileChooser",
-        "profile/:id": "profile",
-        ":encoded": "publicProfile"
-    },
-    homepage: function() {
-        console.log("Page: "+location.hash);
-        this.navigate("profile-chooser", {trigger:true});
-    },
-    validateLogin: function() {
-        if( !localStorage.getItem("auth-token") || localStorage.getItem("auth-token").length < 15 ) {
-            this.navigate("#auth", {trigger: true});
-            throw new Error("User not authenticated");
+
+const router = new Navigo("/");
+router.hooks({
+    before( done, match ) {
+        if( Util.getAuth().isLoggedIn() ) {
+            Util.getHeader().render();
+            done();
+        } else {
+            Util.getHeader().render( true );
+            if( match.route.name == "" || match.route.name == "auth" || match.route.name == ":profile" ) {
+                done();
+            } else {
+                Util.getAuth().render();
+                done( false );
+            }
         }
-    },
-    auth: function() {
-        console.log( "PAGE: "+location.hash );
-        authView.render();
-    },
-    profileChooser: function() {
-        console.log("Page: "+location.hash);
-        this.validateLogin();
-        if( profileChooser == null || profileChooser == undefined )
-            profileChooser = new ProfileChooserView();
-        header.render();
-        profileChooser.render();
-    },
-    profile: function( id ) {
-        console.log("Page: "+location.hash);
-        this.validateLogin();
-        if ( !profileView )
-            profileView = new ProfileView();
-        profileView.model.set('id', id);
-        profileView.render();
-        header.render();
-    },
-    publicProfile: function( id ) {
-        console.log("Page: "+location.hash);
-        if ( !publicProfileView )
-            publicProfileView = new PublicProfileView();
-        publicProfileView.model.set('code', id);
-        publicProfileView.render();
+        if ( match.hashString.length > 3 ) {
+            router.navigate( `/${match.hashString}` );
+        }
+        return;
     }
 });
-const route = new Router();
-Backbone.history.start();
+router.on("", (match) => {
+    router.navigate( `/profiles` );
+});
+router.on("/auth", () => Util.getAuth().render() );
+router.on("/profiles", () => Util.getProfiles().render() );
+router.on("/profile/:id", ({ data }) => {
+    Util.getProfile().model.set('id', data.id);
+    Util.getProfile().render();
+});
+router.on("/:profile", ({ data,params }) => {
+    Util.getPublicProfile().model.set('code', data.profile);
+    Util.getPublicProfile().render();
+});
+router.resolve();
+
+

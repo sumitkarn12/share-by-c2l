@@ -24,11 +24,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
+    <script src="//unpkg.com/navigo"></script>
 </head>
 
 <body>
     <div id="header" class="w3-bar w3-card-4 w3-theme">
-        <a href="#" class="w3-bar-item w3-button title"><span class="logo">
+        <a href="/" data-navigo class="w3-bar-item w3-button title"><span class="logo">
             <svg id="Layer_1" viewBox="0 0 330 330">
                 <g id="XMLID_2_">
                     <path id="XMLID_4_" d="M315,0H15C6.716,0,0,6.716,0,15v300c0,8.284,6.716,15,15,15h300c8.284,0,15-6.716,15-15V15
@@ -51,7 +52,7 @@
     <div id="auth" class="view">
         <div class="w3-container w3-padding-16 login-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <h3 class="w3-container">Login to account</h3>
+                <h3 class="w3-container w3-margin-top">Login to your account</h3>
 
                 <form class="w3-container login-form" action="#" method="post">
                     <div class="w3-section">
@@ -59,7 +60,7 @@
                         <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
                         <label>Password</label>
                         <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
-                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge submit-btn">Login</button>
+                        <button class="w3-button w3-right w3-theme w3-section w3-padding w3-round-xxlarge submit-btn">Login</button>
                     </div>
                 </form>
                 
@@ -75,7 +76,7 @@
         </div>
         <div class="w3-container w3-padding-16 register-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <h3 class="w3-container">Register to account</h3>
+                <h3 class="w3-container w3-margin-top">Register your account</h3>
             
                 <form class="w3-container register-form" action="#" method="post">
                     <div class="w3-section">
@@ -83,7 +84,7 @@
                         <input class="w3-input w3-border w3-margin-bottom w3-round-xxlarge" type="email" placeholder="Enter Email" name="email" required>
                         <label>Password</label>
                         <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
-                        <button class="w3-button w3-right w3-green w3-section w3-padding w3-round-xxlarge submit-btn">Register</button>
+                        <button class="w3-button w3-right w3-theme w3-section w3-padding w3-round-xxlarge submit-btn">Register</button>
                     </div>
                 </form>
 
@@ -99,7 +100,7 @@
         </div>
         <div class="w3-container w3-padding-16 password-reset-box box">
             <div class="w3-card-4 w3-animate-zoom w3-round-xxlarge">
-                <h3 class="w3-container">Reset password of your account</h3>
+                <h3 class="w3-container w3-margin-top">Reset password of your account</h3>
             
                 <form class="w3-container password-reset-form" action="#" method="post">
                     <div class="w3-section">
@@ -114,7 +115,7 @@
                         <input class="w3-input w3-border w3-round-xxlarge" type="text" placeholder="Enter Verification Code" name="verification_code" required>
                         <label>Password</label>
                         <input class="w3-input w3-border w3-round-xxlarge" type="password" placeholder="Enter Password" name="password" required>
-                        <button class="w3-button w3-right w3-green w3-section update-password-btn w3-padding w3-round-xxlarge">Update password</button>
+                        <button class="w3-button w3-right w3-theme w3-section update-password-btn w3-padding w3-round-xxlarge">Update password</button>
                     </div>
                 </form>
         
@@ -128,7 +129,7 @@
     <div id="profile-chooser" class="view">
         <div class="w3-container w3-padding-16">
             <div class="w3-center">
-                <a href="#profile/0" class="w3-button w3-theme w3-round-xxlarge"><i class="fa fa-plus"></i> Create new profile</a>
+                <a href="/profile/0" data-navigo="" class="w3-button w3-theme w3-round-xxlarge"><i class="fa fa-plus"></i> Create new profile</a>
             </div>
             <ul id="profile-list" class="w3-border w3-ul w3-round-xxlarge w3-margin-top "></ul>
         </div>
