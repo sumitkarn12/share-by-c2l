@@ -45,8 +45,10 @@ const Authorize = Backbone.View.extend({
             body: JSON.stringify({ email: email })
         }).then( r => r.json() ).then( res => {
             ev.currentTarget.remove();
-            console.log( res )
-            alert('Please check your email.')
+            console.log( res );
+            let d = new Dialog("Mail sent");
+            d.setContent(`<p class='w3-container'>Please check your email.</p>`);
+            d.render();
         });
     },
     resetPassword: function( ev ) {
@@ -64,7 +66,9 @@ const Authorize = Backbone.View.extend({
             body: JSON.stringify( obj )
         }).then( r => r.json() ).then( res => {
             $(ev.currentTarget.querySelector('.update-password-btn .fa')).remove();
-            alert( res.message );
+            let d = new Dialog("Message");
+            d.setContent(`<p class='w3-container w3-padding-16'>${res.message}</p>`);
+            d.render();
             console.log( res );
         });        
     },
@@ -577,7 +581,9 @@ const ProfileView = Backbone.View.extend({
             },
             error: function() {
                 $(ev.currentTarget).find(".fa").remove();
-                alert( "Counldn't delete." );
+                let d = new Dialog("Error");
+                d.setContent( `<p class='w3-container w3-padding-16>Counldn't delete.</p>` );
+                d.render();
             }
         });
     },
@@ -730,8 +736,15 @@ const PublicProfileView = Backbone.View.extend({
             success: function() {
                 self.renderInfo()
             },
-            error: function() {
-                alert("Oh oh! Not able to find any user.");
+            error: function() {                
+                let d = new Dialog();
+                d.setContent( `<div class='w3-bar w3-theme'><span class='w3-bar-item'>Error</span></div>
+                <p class='w3-container w3-padding-16'>Oh oh! Could not find user.</p>`);
+                d.render()
+                setTimeout(() => {
+                    d.remove();
+                    router.navigate('/');
+                }, 20000);
             }
         });
     },
@@ -843,6 +856,35 @@ const PublicProfileView = Backbone.View.extend({
             title: `${self.model.get('info').name} - ${self.model.get('info').about}`
         });
 
+    }
+});
+const Dialog = Backbone.View.extend({
+    tagName: "div",
+    className: "w3-modal w3-show",
+    events: {
+        'click .close': 'remove'
+    },
+    initialize: function( header ) {
+        this.$el.append(`<div class='w3-modal-content w3-animate-zoom'></div>`);
+        if ( header ) {
+            this.$el.find(".w3-modal-content").append(`<div class='w3-modal--header w3-bar w3-theme'>
+                <span class='w3-bar-item'>${header}</span>
+                <button class='close w3-bar-item w3-button w3-theme-d1 w3-right'>&times;</button>
+            </div>`);
+        }
+        this.$el.find(".w3-modal-content").append(`<div class='w3-modal--content'></div>`);
+        this.$el.find(".w3-modal-content").append(`<div class='w3-modal--footer'></div>`);
+    },
+    render: function() {
+        this.$el.show();
+        document.querySelector("body").append( this.el );
+        return this.el;
+    },
+    remove: function() {
+        this.el.remove();
+    },
+    setContent: function( content ) {
+        this.$el.find('.w3-modal--content').append( content );
     }
 });
 
