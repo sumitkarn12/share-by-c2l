@@ -160,8 +160,12 @@ const ProfileChooserCardView = Backbone.View.extend({
         'click .delete-profile': 'remove'
     },
     initialize: function( model ) {
+        const self = this;
         this.model = model;
         this.model.on('remove', () => this.removeCard() );
+        this.model.on('change', () => {
+            self.$el.html( self.template( self.model.toJSON() ) );
+        });
         this.$el.append( this.template( this.model.toJSON() ) );
         return this;
     },
@@ -191,24 +195,10 @@ const ProfileChooserView = Backbone.View.extend({
             return a;
         }
     }))(),
-    template: _.template(`<li class='w3-bar pr_<%= id %>'>
-        <img src="<%= info.image %>" class='w3-circle w3-bar-item' alt="Avatar of <%= info.name %>" />
-        <span class='w3-bar-item'>
-            <span class='w3-large'><%= info.name %></span><br>
-            <span class='w3-tiny'><%= info.about %></span><br>
-            <a href="/profile/<%=id%>" data-navigo class='w3-card w3-theme w3-round-xxlarge w3-button'><i class="fa fa-pencil"></i> Edit</a>
-            <a data-id='<%=id%>' class='w3-round-xxlarge w3-button delete-profile'><i class="fa fa-trash"></i> Delete</a>
-        </span>  
-    </li>`),
     initialize: function() {
         const self = this;
         this.model.on('add', this.show, this);
         this.model.on('reset', this.reset, this);
-    },
-    render: function() {
-        const self = this;
-        $('.view').hide();
-        this.$el.show();
         this.model.reset();
         this.model.fetch({
             success: function() {
@@ -219,6 +209,11 @@ const ProfileChooserView = Backbone.View.extend({
                 self.$el.find('#profile-list').html( `<li class='w3-large'>No profile to show. Create a new profile.</li>` );
             }
         });
+    },
+    render: function() {
+        const self = this;
+        $('.view').hide();
+        this.$el.show();
     },
     reset: function( a ) {
         this.$el.find("#profile-list").empty();
@@ -745,7 +740,40 @@ const PhotoEditorView = Backbone.View.extend({
 });
 // Collection of Link Buttons
 const BasicInfoView = Backbone.View.extend({
-    el:'.basic-info',
+    tagName:'div',
+    className: 'w3-container w3-center',
+    template: `<div class="w3-display-container">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver" class="w3-circle avatar" alt="Avatar of person" />
+            <button class="open-photo-editor w3-display-bottomright w3-card w3-xlarge w3-circle w3-button w3-theme"><i class="fa fa-pencil"></i></button>
+        </div>
+        <select id="profile-theme" class="w3-margin-top w3-text-theme w3-round-xxlarge w3-select w3-border">
+            <option value='https://www.w3schools.com/lib/w3-theme-red.css'>Red</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-pink.css'>Pink</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-purple.css'>Purple</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-deep-purple.css'>Deep Purple</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-indigo.css'>Indigo</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-blue.css'>Blue</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-light-blue.css'>Light Blue</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-cyan.css'>Cyan</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-teal.css'>Teal</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-green.css'>Green</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-light-green.css'>Light Green</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-lime.css'>Lime</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-khaki.css'>Khaki</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-yellow.css'>Yellow</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-amber.css'>Amber</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-orange.css'>Orange</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-deep-orange.css'>Deep Orange</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-blue-grey.css'>Blue Grey</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-brown.css'>Brown</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-grey.css'>Grey</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-dark-grey.css'>Dark Grey</option>
+            <option value='https://www.w3schools.com/lib/w3-theme-black.css'>Black</option>
+        </select>
+        <div class="w3-xxlarge">
+            <input type="text" value="" name="name" class="w3-input name w3-text-theme"/>
+        </div>
+        <div class="w3-large"><input type="text" value="" name="about" class="w3-input about w3-text-theme"/></div>`,
     events: {
         "click .add": "add",
         "click .open-photo-editor": "openPhotoEditor",
@@ -806,20 +834,19 @@ const ProfileView = Backbone.View.extend({
         "click .configure": "openConfigurationModal",
         "click #qr-scan-modal .cancel": "closeConfigurationModal"
     },
-    render: function() {
+    render: function( profileId ) {
+        profileId = parseInt( profileId );
         const self = this;
         $('.view').hide();
         this.$el.show();
-        this.$el.find('#profile-theme').val('https://www.w3schools.com/lib/w3-theme-teal.css');
 
-        try {
-            this.socials.model.reset();
-            this.contacts.model.reset();
-            this.links.model.reset();            
-        } catch (error) {}
+        this.basicInfo = null;
+        this.socials = null;
+        this.contacts =  null;
+        this.links = null;
 
-        if ( this.model.get('id') ==  0  ) {
-            this.model.unset('id');
+        if ( profile ===  0  ) {
+
             this.model.set({
                 info: {
                     name: "Name",
@@ -834,34 +861,34 @@ const ProfileView = Backbone.View.extend({
             });
             self.renderInfo();
             console.log( 'Need to create a new profile' );
-            return;
+        } else if ( Util.getProfiles( false ) ) {
+            console.log ( 'Fetching from cache', this.model.url(), this.model.toJSON() );
+            this.model = Util.getProfiles().model.get( profileId );
+            self.renderInfo();
+        } else {
+            console.log ( 'Fetching from server', this.model.url(), this.model.toJSON() );
+            this.model.set('id', profileId );
+            this.model.fetch({
+                success: function() {
+                    self.renderInfo()
+                }
+            });
         }
 
-        this.model.fetch({
-            success: function() {
-                self.renderInfo()
-            }
-        });
     },
     renderInfo: function( isEditable = true ) {
 
-        if( !this.basicInfo ) {
-            this.basicInfo = new BasicInfoView({ model:Object.assign(this.model.get('info'), {theme: this.model.get('theme')}), isEditable: isEditable });
-            this.basicInfo.render( isEditable );
-        }
+        this.basicInfo = new BasicInfoView({ model:Object.assign(this.model.get('info'), {theme: this.model.get('theme')}), isEditable: isEditable });
+        this.$el.find('.basic-info').html(this.basicInfo.render( isEditable ));
 
-        if( !this.socials ) {
-            this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: isEditable });
-            this.$el.find(".social-btns").html( this.socials.render() );
-        }
-        if( !this.contacts ) {
-            this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: isEditable });
-            this.$el.find(".contact-btns").html( this.contacts.render() );
-        }
-        if( !this.links ) {
-            this.links = new LinkBtnsView({ collection: this.model.get("links"), isEditable: isEditable });
-            this.$el.find(".link-btns").html( this.links.render() );
-        }
+        this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: isEditable });
+        this.$el.find(".social-btns").html( this.socials.render() );
+
+        this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: isEditable });
+        this.$el.find(".contact-btns").html( this.contacts.render() );
+
+        this.links = new LinkBtnsView({ collection: this.model.get("links"), isEditable: isEditable });
+        this.$el.find(".link-btns").html( this.links.render() );
 
         return this;
     },
@@ -882,7 +909,6 @@ const ProfileView = Backbone.View.extend({
         this.model.save(newObj,{
             success: function() {
                 $(ev.currentTarget).find('.fa').remove();
-                self.model.fetch();
                 router.navigate("/");
             },
             error: function() {
@@ -1177,8 +1203,8 @@ const Util = {
             this.header = new Header();
         return this.header;
     },
-    getProfiles: function() {
-        if ( !this.profilesView )
+    getProfiles: function( forceCreate = true ) {
+        if ( !this.profilesView && forceCreate )
             this.profilesView = new ProfileChooserView();
         return this.profilesView;
     },
@@ -1223,8 +1249,7 @@ router.on("", (match) => {
 router.on("/auth", () => Util.getAuth().render() );
 router.on("/profiles", () => Util.getProfiles().render() );
 router.on("/profile/:id", ({ data }) => {
-    Util.getProfile().model.set('id', data.id);
-    Util.getProfile().render();
+    Util.getProfile().render( data.id );
 });
 router.on("/:profile", ({ data,params }) => {
     Util.getPublicProfile().model.set('code', data.profile);
