@@ -144,6 +144,43 @@ const Spinner = Backbone.View.extend({
         this.render();
     }
 });
+const ProfileChooserCardView = Backbone.View.extend({
+    tagName: 'li',
+    className: 'w3-bar',
+    template: _.template(`<div class='pr_<%= id %>'>
+        <img src="<%= info.image %>" class='w3-circle w3-bar-item' alt="Avatar of <%= info.name %>" />
+        <span class='w3-bar-item'>
+            <span class='w3-large'><%= info.name %></span><br>
+            <span class='w3-tiny'><%= info.about %></span><br>
+            <a href="/profile/<%=id%>" data-navigo class='w3-card w3-theme w3-round-xxlarge w3-button'><i class="fa fa-pencil"></i> Edit</a>
+            <a data-id='<%=id%>' class='w3-round-xxlarge w3-button delete-profile'><i class="fa fa-trash"></i> Delete</a>
+        </span>  
+    </div>`),
+    events: {
+        'click .delete-profile': 'remove'
+    },
+    initialize: function( model ) {
+        this.model = model;
+        this.model.on('remove', () => this.removeCard() );
+        this.$el.append( this.template( this.model.toJSON() ) );
+        return this;
+    },
+    render: function() {
+        return this.el;
+    },
+    removeCard: function() {
+        this.$el.remove();
+    },
+    remove: function( ev ) {
+        ev.preventDefault();
+        this.$el.css('filter', 'blur(12px)')
+        console.log( this.model.get('id') );
+        let prompt = confirm(`Are you sure to delete this profile? Name: ${this.model.get('info').name}`);
+        if( prompt ) {
+            this.model.destroy({ wait: true });
+        }
+    }
+});
 const ProfileChooserView = Backbone.View.extend({
     el: "#profile-chooser",
     model: new (Backbone.Collection.extend({
@@ -154,9 +191,6 @@ const ProfileChooserView = Backbone.View.extend({
             return a;
         }
     }))(),
-    events: {
-        'click .delete-profile': 'deleteProfile'
-    },
     template: _.template(`<li class='w3-bar pr_<%= id %>'>
         <img src="<%= info.image %>" class='w3-circle w3-bar-item' alt="Avatar of <%= info.name %>" />
         <span class='w3-bar-item'>
@@ -170,7 +204,6 @@ const ProfileChooserView = Backbone.View.extend({
         const self = this;
         this.model.on('add', this.show, this);
         this.model.on('reset', this.reset, this);
-        this.model.on('remove', this.remove, this);
     },
     render: function() {
         const self = this;
@@ -193,20 +226,9 @@ const ProfileChooserView = Backbone.View.extend({
             <div class='w3-xxlarge'><i class='fa fa-spin fa-refresh'></i></div>
         </li>` );
     },
-    remove: function(m) {
-        this.$el.find(`.pr_${m.get('id')}`).remove();
-    },
-    deleteProfile: function( ev ) {
-        ev.preventDefault();
-        let profile = this.model.get( ev.currentTarget.dataset.id );
-        let prompt = confirm(`Are you sure to delete this profile? Name: ${profile.get('info').name}`);
-        if( prompt ) {
-            profile.destroy({ wait: true });
-        }
-    },
     show: function( m ) {
-        let temp = this.template( m.toJSON() );
-        this.$el.find("#profile-list").append( temp );
+        let pCard = new ProfileChooserCardView( m );
+        this.$el.find("#profile-list").append( pCard.render() );
         try { this.$el.find("#profile-list .loader").remove(); } catch (error) {}
     }
 });
