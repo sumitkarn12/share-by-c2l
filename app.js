@@ -664,47 +664,130 @@ const LinkBtnsView = Backbone.View.extend({
     }
 });
 
+const PhotoEditorView = Backbone.View.extend({
+    tagName: 'div',
+    className: 'w3-modal',
+    template: `<div class="w3-modal-content w3-animate-zoom">
+        <div class="w3-container w3-theme">
+            <p>Select photo</p>
+        </div>
+        <div class="w3-container w3-padding-16">
+            <input type="file" name="image" class="image w3-input w3-round-xxlarge w3-border" />
 
-// Collection of Link Buttons
-const BasicDetailView = Backbone.View.extend({
-    tagName: "div",
-    template: `<div class="btns"></div>
-    <div class='w3-center w3-margin-bottom w3-margin-top add-btn-wrapper'>
-        <button class="w3-round-xxlarge w3-button w3-theme add"><i class="fa fa-plus"></i> Add new link</button>
+            <div class="w3-margin-bottom">
+                <img src="" id="input-image" style="width: 100%; display: block; box-sizing: border-box;" alt="">
+            </div>
+            <button class="w3-button w3-theme w3-round-xxlarge crop">Crop</button>
+            <button class="w3-button w3-round-xxlarge crop w3-margin-left close-photo-editor">Cancel</button>
+            <div class="w3-panel alert w3-theme-d5 w3-hide w3-margin-top w3-margin-bottom w3-round-xxlarge">
+                <p></p>
+            </div>
+        </div>
     </div>`,
     events: {
-        "click .add": "add"
+        "change .image": "loadPhotoToCanvas",
+        "click .crop": 'save',
+        "click .close-photo-editor": 'close'
     },
-    initialize: function({ collection, isEditable }) {
-        this.$el.html( this.template );
-        const self = this;
-        const Btns = Backbone.Collection.extend({
-            model: Backbone.Model.extend({
-                idAttribute: 'index'
-            })
-        });
-        collection = collection.sort( (a,b)=> a.index - b.index );
-        this.collection = new Btns();
-        this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
-        this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
-        this.collection.add( collection );
-        ( isEditable )?this.$el.find('.add-btn-wrapper').show():this.$el.find('.add-btn-wrapper').hide()
+    initialize: function( model ) {
+        this.model = model;
+        this.$el.append( this.template );
+        document.querySelector("body").append( this.el );
     },
     render: function() {
+        this.$el.show();
+        return this.$el;
+    },
+    loadPhotoToCanvas: function( ev ) {
+        ev.preventDefault();
+        const self = this;
+        let f = ev.currentTarget.files[0];
+        self.$el.find(".alert p").text("Loading photo");
+        let fileReader = new FileReader();
+        fileReader.readAsDataURL( f );
+        fileReader.onload = () => {
+            self.$el.find(".alert p").text("Crop photo");
+            self.$el.find("#input-image").attr('src', fileReader.result);
+            if ( self.cropper ) {
+                self.cropper.destroy()
+            }
+            self.cropper = new Cropper( self.$el.find("#input-image")[0], {
+                aspectRatio: 1,
+                viewMode: 1
+            });
+        }
+    },
+    save: function( ev ) {
+        ev.preventDefault();
+        const self = this;
+        if( self.cropper ) {
+            let res = self.cropper.getCroppedCanvas().toDataURL("image/webp");
+            res = res.slice( res.indexOf(",")+1, res.length )
+            self.$el.find(".alert").removeClass("w3-hide");
+            self.$el.find(".alert p").text("Uploading photo");
+            let form = new FormData();
+            form.append("image", res);
+            form.append("key", "64b0a819e5099280c5c0f7241b8c790a");
+            fetch( "https://api.imgbb.com/1/upload", {
+                method: "POST",
+                body: form
+            }).then( r => r.json() ).then( r => {
+                self.model.set("image", r.data.url );
+                self.close( ev );
+            });
+        }
+    },
+    close: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+        try { this.cropper.destroy(); } catch(er){}
+    }
+});
+// Collection of Link Buttons
+const BasicInfoView = Backbone.View.extend({
+    el:'.basic-info',
+    events: {
+        "click .add": "add",
+        "click .open-photo-editor": "openPhotoEditor",
+        'change #profile-theme':'updateTheme',
+        'keyup input':'updateDetail'
+    },
+    initialize: function({ model, isEditable }) {
+        this.$el.html( this.template );
+        const self = this;
+        this.model = new (Backbone.Model.extend())();
+        this.model.set( model );
+        this.model.on('change:image', function( m, val ) {
+            self.$el.find(".avatar").attr( "src", val );
+            self.$el.find(".avatar").attr( "alt", self.model.get("name") );
+        });
+
+        this.$el.find(".avatar").attr( "src", this.model.get("image") );
+        this.$el.find(".avatar").attr( "alt", this.model.get("name") );
+        this.$el.find(".name").val( this.model.get("name") );
+        this.$el.find(".about").val( this.model.get("about") );
+        this.$el.find("#profile-theme").val( this.model.get("theme") ).change();
+
+        ( isEditable )?this.$el.find('.open-photo-editor').show():this.$el.find('.open-photo-editor').hide()
+    },
+    render: function( isEditable=true ) {
         return this.el;
     },
-    addBtn: function({ model: model, isEditable: isEditable }) {
-        const btnCard = new LinkBtnView({
-            model: model,
-            collection: this.collection,
-            isEditable: isEditable
-        });
-        this.$el.find('.btns').append( btnCard.render() );
-    },
-    add: function( ev ) {
+    updateDetail: function( ev ) {
         ev.preventDefault();
-        const addLink = new AddLinkBtnView( this.collection );
-        addLink.render();
+        this.model.set(ev.currentTarget.getAttribute('name'), ev.currentTarget.value);
+    },
+    updateTheme: function( ev ) {
+        ev.preventDefault();
+        let themeUrl = ev.currentTarget.value;
+        let themeLink = document.querySelector('#link-rel');
+        themeLink.setAttribute('href', themeUrl );
+        this.model.set("theme", themeUrl);
+    },
+    openPhotoEditor: function( ev ) {
+        ev.preventDefault();
+        const pEditor = new PhotoEditorView( this.model );
+        pEditor.render();
     }
 });
 const ProfileView = Backbone.View.extend({
@@ -718,18 +801,10 @@ const ProfileView = Backbone.View.extend({
         }
     }))(),
     events: {
-        'change #profile-theme':'updateTheme',
-        "click .open-photo-editor": "openPhotoEditor",
-        "click .close-photo-editor": "closePhotoEditor",
-        "change .photo-editor .image": "loadPhotoToCanvas",
-        "click .save": "save",
         "click .remove-mapping": "removeMapping",
-        "click .photo-editor .crop": "crop",
+        "click .footer .save": "save",
         "click .configure": "openConfigurationModal",
-        "click #qr-scan-modal .cancel": "closeConfigurationModal",
-        "click .delete-profile": "openConfirmDeletion",
-        "click .deletion-confirmed": "deletionConfirmed",
-        "click .deletion-cancelled": "deletionCancelled"
+        "click #qr-scan-modal .cancel": "closeConfigurationModal"
     },
     render: function() {
         const self = this;
@@ -769,11 +844,12 @@ const ProfileView = Backbone.View.extend({
         });
     },
     renderInfo: function( isEditable = true ) {
-        this.$el.find(".image-card .avatar").attr( "src", this.model.get("info").image );
-        this.$el.find(".image-card .avatar").attr( "alt", this.model.get("info").name );
-        this.$el.find(".basic-info .name").val( this.model.get("info").name );
-        this.$el.find(".basic-info .about").val( this.model.get("info").about );
-        this.$el.find("#profile-theme").val( this.model.get("theme") ).change();
+
+        if( !this.basicInfo ) {
+            this.basicInfo = new BasicInfoView({ model:Object.assign(this.model.get('info'), {theme: this.model.get('theme')}), isEditable: isEditable });
+            this.basicInfo.render( isEditable );
+        }
+
         if( !this.socials ) {
             this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: isEditable });
             this.$el.find(".social-btns").html( this.socials.render() );
@@ -789,102 +865,19 @@ const ProfileView = Backbone.View.extend({
 
         return this;
     },
-    openPhotoEditor: function( ev ) {
-        ev.preventDefault();
-        this.$el.find(".photo-editor").show();
-    },
-    closePhotoEditor: function( ev ) {
-        ev.preventDefault();
-        this.$el.find(".photo-editor").hide();
-    },
-    loadPhotoToCanvas: function( ev ) {
-        ev.preventDefault();
-        const self = this;
-        let f = ev.currentTarget.files[0];
-        self.$el.find(".alert p").text("Loading photo");
-        let fileReader = new FileReader();
-        fileReader.readAsDataURL( f );
-        fileReader.onload = () => {
-            self.$el.find(".alert p").text("Crop photo");
-            self.$el.find("#input-image").attr('src', fileReader.result);
-            if ( self.cropper ) {
-                self.cropper.destroy()
-            }
-            self.cropper = new Cropper( self.$el.find("#input-image")[0], {
-                aspectRatio: 1,
-                viewMode: 1
-            });
-        }
-    },
-    crop: function( ev ) {
-        ev.preventDefault();
-        const self = this;
-        if( self.cropper ) {
-            let res = self.cropper.getCroppedCanvas().toDataURL("image/webp");
-            res = res.slice( res.indexOf(",")+1, res.length )
-            self.$el.find(".alert").removeClass("w3-hide");
-            self.$el.find(".alert p").text("Uploading photo");
-            let form = new FormData();
-            form.append("image", res);
-            form.append("key", "64b0a819e5099280c5c0f7241b8c790a");
-            fetch( "https://api.imgbb.com/1/upload", {
-                method: "POST",
-                body: form
-            }).then( r => r.json() ).then( r => {
-                self.closePhotoEditor( ev );
-                self.$el.find(".alert").addClass("w3-hide");
-                self.$el.find(".image-card img").attr("src", r.data.url );
-                self.$el.find(".image-card img").attr("alt", r.data.title );
-                self.$el.find(".alert p").text("");
-            });
-        }
-    },
-    openConfirmDeletion: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('#confirm-deletion').show();
-    },
-    deletionConfirmed: function( ev ) {
-        ev.preventDefault();
-        const self = this;
-        $(ev.currentTarget).prepend(`<i class='fa fa-refresh fa-spin'></i> `);
-        this.model.destroy({
-            success: function() {
-                $(ev.currentTarget).find(".fa").remove();
-                router.navigate("/");
-            },
-            error: function() {
-                $(ev.currentTarget).find(".fa").remove();
-                let d = new Dialog("Error");
-                d.setContent( `<p class='w3-container w3-padding-16>Counldn't delete.</p>` );
-                d.render();
-            }
-        });
-    },
-    deletionCancelled: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('#confirm-deletion').hide();
-    },
-    updateTheme: function( ev ) {
-        ev.preventDefault();
-        let themeUrl = ev.currentTarget.value;
-        let themeLink = document.querySelector('#link-rel');
-        themeLink.setAttribute('href', themeUrl );
-    },
     save: function( ev ) {
         ev.preventDefault();
         const self = this;
 
-        let basicInfo = this.model.get("info");
-        basicInfo.image = self.$el.find(".image-card img").attr("src");
-        basicInfo.name = this.$el.find('.basic-info .name').val().trim();
-        basicInfo.about = this.$el.find('.basic-info .about').val().trim();
+        let basicInfo = this.basicInfo.model.toJSON();
         let newObj = {
             info: basicInfo,
             contacts: this.contacts.collection.toJSON(),
             socials: this.socials.collection.toJSON(),
             links: this.links.collection.toJSON(),
-            theme: self.$el.find("#profile-theme").val()
+            theme: basicInfo.theme+""
         };
+        delete basicInfo.theme;
         $(ev.currentTarget).prepend(`<i class='fa fa-refresh fa-spin'></i> `);
         this.model.save(newObj,{
             success: function() {
