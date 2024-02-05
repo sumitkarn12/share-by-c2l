@@ -249,76 +249,147 @@ const Header = Backbone.View.extend({
     }
 });
 
-const SocialBtnView = Backbone.View.extend({
-    el: "#profile .social-btns",
+// Add Single Social Button to a collection
+const AddSocialBtnView = Backbone.View.extend({
+    tagName: 'div',
+    className: 'w3-modal',
     socialMediaIcons: [ 'behance', 'delicious', 'dribbble', 'facebook-square', 'flickr', 'foursquare', 'github', 'google', 'linkedin', 'medium', 'paypal', 'pinterest', 'qq', 'quora', 'reddit', 'slack', 'slideshare', 'snapchat', 'instagram', 'soundcloud', 'spotify', 'telegram', 'trello', 'tumblr', 'twitch', 'twitter', 'vimeo', 'vk', 'wechat', 'weibo', 'whatsapp', 'youtube'],
-    template: _.template(`<span class='social-btn-<%=index%> w3-display-container btn-container'>
+    template: `<div class="w3-modal-content w3-animate-zoom">
+        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Social Button</div>
+        <div class="w3-container w3-padding-16">
+            <form action="#">
+                <label>Link type</label>
+                <select name="type" class="w3-select w3-border w3-round-xxlarge"></select>
+                <div class="w3-section"></div>
+                <label>URL</label>
+                <input type="url" name="url" class="w3-input w3-border w3-round-xxlarge" />
+                <div class="w3-section"></div>
+                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+            </form>    
+        </div>
+    </div>`,
+    events: {
+        'submit form': 'add',
+        'click .cancel-btn': 'close'
+    },
+    initialize: function( collection ) {
+        this.collection = collection;
+        this.$el.html( this.template );
+        this.socialMediaIcons = this.socialMediaIcons.sort();
+        this.socialMediaIcons.forEach(e => {
+            this.$el.find('[name=type]').append(`<option value="${e}">${e}</option>`)
+        });
+        this.$el.find('[name=type]').append(`<option value="share-alt">other</option>`);
+        document.querySelector('body').append( this.el );
+        return this;
+    },
+    add: function( ev ) {
+        ev.preventDefault();
+        let newBtn = {};
+        newBtn.type = ev.currentTarget.querySelector('[name=type]').value.split("-")[0];
+        newBtn.icon = ev.currentTarget.querySelector('[name=type]').value;
+        newBtn.url = ev.currentTarget.querySelector('[name=url]').value;
+        newBtn.index = Math.max( ...this.collection.toJSON().map( a => a.index ) ) + 1;
+        if ( newBtn.index == -Infinity )
+            newBtn.index = 1;
+        this.collection.add( newBtn );
+        console.log( newBtn, this.collection );
+        this.close( ev );
+    },
+    close: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+    },
+    render: function() {
+        this.$el.show();
+        return this.el;
+    }
+});
+// Single Social Button from a collection
+const SocialBtnView = Backbone.View.extend({
+    tagName: 'span',
+    className: 'w3-display-container btn-container',
+    template: _.template(`<span>
         <a target="_blank" href="<%= url %>" class="w3-xlarge w3-circle w3-button w3-theme">
             <i class="fa fa-<%= icon %>"></i>
         </a>
         <button style="padding:0 6px;" data-index="<%= index %>" class='w3-card remove w3-button w3-white w3-display-topleft w3-circle'>&times;</button>
     </span>`),
     events: {
-        'click .remove': 'remove',
-        "click .add": "openAddModal",
-        "submit .add-social form": "add",
-        "click .add-social .cancel-btn": "closeAddModal"
+        'click .remove': 'remove'
+    },
+    initialize: function({ model, collection, isEditable }) {
+        this.model = model;
+        this.collection = collection;
+
+        this.el.classList.add(`social-btn-${this.model.get('index')}`);
+        let card = this.template( this.model.toJSON() );
+        this.$el.append( card );
+        if( !isEditable )
+            this.$el.find('.remove').remove();
+        return this;
+    },
+    remove: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+        this.collection.remove( this.model );
+    },
+    render: function() {
+        return this.el;
+    }
+});
+// Collection of Social Buttons
+const SocialBtnsView = Backbone.View.extend({
+    tagName: 'div',
+    className: 'btn-wrapper',
+    template: `<div class="btns"></div><button class="w3-xlarge w3-circle w3-button w3-theme add"><i class="fa fa-plus"></i></button>`,
+    events: {
+        "click .add": "openAddModal"
     },
     model: Backbone.Collection.extend({
         model: Backbone.Model.extend({
             idAttribute: 'index'
-        })
+        }),
+        comparator:'index'
     }),
-    initialize: function() {
-        console.log( "Creating new instance of Social" );
+    initialize: function({ collection, isEditable }) {
+        this.$el.html( this.template );
         const self = this;
-        this.model = new this.model();
-        this.model.on('add', m => { self.render( m ) });
-        this.model.on('reset', () => { self.$el.find('.btns').empty(); });
-        this.model.on('remove', m => {
-            self.$el.find(`.social-btn-${m.get('index')}`).remove();
+        const Btns = Backbone.Collection.extend({
+            model: Backbone.Model.extend({
+                idAttribute: 'index'
+            })
         });
-        this.socialMediaIcons = this.socialMediaIcons.sort();
-        this.socialMediaIcons.forEach(e => {
-            this.$el.find('.add-social [name=type]').append(`<option value="${e}">${e}</option>`)
+        collection = collection.sort( (a,b)=> a.index - b.index );
+        this.collection = new Btns();
+        this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
+        this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
+        this.collection.add( collection );
+        ( isEditable )?this.$el.find('.add').show():this.$el.find('.add').hide()
+    },
+    addBtn: function({ model, isEditable }) {
+        let btnCard = new SocialBtnView({
+            model: model,
+            collection: this.collection,
+            isEditable: isEditable
         });
-        this.$el.find('.add-social [name=type]').append(`<option value="share-alt">other</option>`)
+        this.$el.find('.btns').append( btnCard.render() );
     },
-    render: function( el ) {
-        this.$el.find('.btns').append( this.template( el.toJSON() ) );
-    },
-    remove: function( ev ) {
-        ev.preventDefault();
-        let index = ev.currentTarget.dataset.index;
-        this.model.remove( index );
-    },
-    add: function( ev ) {
-        ev.preventDefault();
-        console.log( "Adding" )
-        let newBtn = {};
-        newBtn.type = ev.currentTarget.querySelector('[name=type]').value.split("-")[0];
-        newBtn.icon = ev.currentTarget.querySelector('[name=type]').value;
-        newBtn.url = ev.currentTarget.querySelector('[name=url]').value;
-        newBtn.index = Math.max( ...this.model.toJSON().map( a => a.index ) ) + 1;
-        if ( newBtn.index == -Infinity )
-            newBtn.index = 1;
-        this.model.add( newBtn );
-        console.log( newBtn, this.model );
-
-        this.$el.find('.add-social').hide();
+    render: function() {
+        return this.el;
     },
     openAddModal: function( ev ) {
         ev.preventDefault();
-        console.log("Opening n")
-        this.$el.find('.add-social').show();
-    },
-    closeAddModal: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('.add-social').hide();
+        const newBtn = new AddSocialBtnView( this.collection );
+        newBtn.render();
     }
 });
-const ContactBtnView = Backbone.View.extend({
-    el: "#profile .contact-btns",
+
+// Add Single Social Button to a collection
+const AddContactBtnView = Backbone.View.extend({
+    tagName: 'div',
+    className: 'w3-modal',
     icons: [
         { value: 'phone', name: 'Phone'},
         { value: 'whatsapp', name: 'WhatsApp'},
@@ -328,73 +399,143 @@ const ContactBtnView = Backbone.View.extend({
         { value: 'envelope', name: 'Email'},
         { value: 'link', name: 'Other'}
     ],
-    template: _.template(`<span class='contact-btn-<%=index%> w3-display-container btn-container'>
+    template: `<div class="w3-modal-content w3-animate-zoom">
+        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Contact Button</div>
+        <div class="w3-container w3-padding-16">
+            <form action="#">
+                <label>Type</label>
+                <select name="type" class="w3-select w3-border w3-round-xxlarge"></select>
+                <div class="w3-section"></div>
+                <label>Value</label>
+                <input type="text" name="value" class="w3-input w3-border w3-round-xxlarge" />
+                <div class="w3-section"></div>
+                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+            </form>    
+        </div>
+    </div>`,
+    events: {
+        'submit form': 'add',
+        'click .cancel-btn': 'close'
+    },
+    initialize: function( collection ) {
+        this.collection = collection;
+        this.$el.html( this.template );
+        this.icons.forEach(e => {
+            this.$el.find('[name=type]').append(`<option value="${e.value}">${e.name}</option>`)
+        });
+        document.querySelector('body').append( this.el );
+        return this;
+    },
+    add: function( ev ) {
+        ev.preventDefault();
+        let newBtn = {};
+        newBtn.icon = ev.currentTarget.querySelector('[name=type]').value;
+        newBtn.value = ev.currentTarget.querySelector('[name=value]').value;
+        newBtn.type = newBtn.icon;
+        newBtn.index = Math.max( ...this.collection.toJSON().map( a => a.index ) ) + 1;
+        if ( newBtn.index == -Infinity )
+            newBtn.index = 1;
+        this.collection.add( newBtn );
+        this.close( ev );
+    },
+    close: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+    },
+    render: function() {
+        this.$el.show();
+        return this.el;
+    }
+});
+// Single Contact Button from a collection
+const ContactBtnView = Backbone.View.extend({
+    tagName: 'span',
+    className: 'w3-display-container btn-container',
+    template: _.template(`
         <a target="_blank" href="<%= url %>" class="w3-bar-item w3-button w3-block w3-padding-16">
             <i class="fa fa-<%= icon %>"></i>
             <%= value %>
         </a>
-        <button data-index="<%= index %>" class='w3-card remove w3-button w3-theme w3-display-right w3-margin-right w3-round-xxlarge'>&times;</button>
-    </span>`),
+        <button data-index="<%= index %>" class='w3-card remove w3-button w3-theme w3-display-right w3-margin-right w3-circle'>
+            <i class="fa fa-close"></i>
+        </button>
+    `),
     events: {
-        'click .remove': 'remove',
-        "click .add": "openAddModal",
-        "submit .add-contact form": "add",
-        "click .add-contact .cancel-btn": "closeAddModal"
+        'click .remove': 'remove'
+    },
+    initialize: function({ model, collection, isEditable }) {
+        if ( model.get('type') == 'envelope' ) model.set('url', `mailto:${model.get('value')}`);
+        else if ( model.get('type') == 'phone' ) model.set('url', `tel:${model.get('value')}`);
+        else if ( model.get('type') == 'whatsapp' ) model.set('url', `https://wa.me/${model.get('value')}`)
+        else if ( model.get('type') == 'telegram' ) model.set('url', `https://t.me/${model.get('value')}`)
+        else if ( model.get('type') == 'link' ) {model.set('url', model.get('value')); }
+        else model.set('url', null);
+
+        this.model = model;
+        this.collection = collection;
+
+        this.el.classList.add(`contact-btn-${this.model.get('index')}`);
+        let card = this.template( this.model.toJSON() );
+        this.$el.append( card );
+        if( !isEditable )
+            this.$el.find('.remove').remove();
+        return this;
+    },
+    remove: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+        this.collection.remove( this.model );
+    },
+    render: function() {
+        return this.el;
+    }
+});
+// Collection of Contact Buttons
+const ContactBtnsView = Backbone.View.extend({
+    tagName: "div",
+    template: `<div class="btns"></div>
+        <div class='w3-center w3-margin-bottom w3-margin-top'>
+            <button class="w3-button w3-round-xxlarge w3-theme add"><i class="fa fa-plus"></i> Add new contact</button>
+        </div>`,
+    events: {
+        "click .add": "add"
     },
     model: Backbone.Collection.extend({
         model: Backbone.Model.extend({
             idAttribute: 'index'
         })
     }),
-    initialize: function() {
+    initialize: function({ collection, isEditable }) {
+        this.$el.html( this.template );
         const self = this;
-        this.model = new this.model();
-        this.model.on('add', m => { self.render( m ) });
-        this.model.on('reset', () => { self.$el.find('.btns').empty(); });
-        this.model.on('remove', m => {
-            self.$el.find(`.contact-btn-${m.get('index')}`).remove();
+        const Btns = Backbone.Collection.extend({
+            model: Backbone.Model.extend({
+                idAttribute: 'index'
+            })
         });
-        this.icons.forEach(e => {
-            this.$el.find('.add-contact [name=type]').append(`<option value="${e.value}">${e.name}</option>`)
+        collection = collection.sort( (a,b)=> a.index - b.index );
+        this.collection = new Btns();
+        this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
+        this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
+        this.collection.add( collection );
+        ( isEditable )?this.$el.find('.add').show():this.$el.find('.add').hide()
+    },
+    render: function() {
+        return this.el;
+    },
+    addBtn: function({ model, isEditable }) {
+        let card = new ContactBtnView({
+            model: model,
+            collection: this.collection,
+            isEditable: isEditable
         });
-    },
-    render: function( el ) {
-        if ( el.get('type') == 'envelope' ) el.set('url', `mailto:${el.get('value')}`);
-        else if ( el.get('type') == 'phone' ) el.set('url', `tel:${el.get('value')}`);
-        else if ( el.get('type') == 'whatsapp' ) el.set('url', `https://wa.me/${el.get('value')}`)
-        else if ( el.get('type') == 'telegram' ) el.set('url', `https://t.me/${el.get('value')}`)
-        else if ( el.get('type') == 'link' ) {el.set('url', el.get('value')); console.log( el.get('url') )}
-        else el.set('url', null);
-        this.$el.find('.btns').append( this.template( el.toJSON() ) );
-        console.log( el.toJSON() )
-    },
-    remove: function( ev ) {
-        ev.preventDefault();
-        let index = ev.currentTarget.dataset.index;
-        this.model.remove( index );
+        this.$el.find('.btns').append( card.render() );
     },
     add: function( ev ) {
         ev.preventDefault();
-        console.log( "Adding" )
-        let newBtn = {};
-        newBtn.icon = ev.currentTarget.querySelector('[name=type]').value;
-        newBtn.value = ev.currentTarget.querySelector('[name=value]').value;
-        newBtn.type = newBtn.icon;
-        newBtn.index = Math.max( ...this.model.toJSON().map( a => a.index ) ) + 1;
-        if ( newBtn.index == -Infinity )
-            newBtn.index = 1;
-        console.log( newBtn );
-        this.model.add( newBtn );
-        console.log( this.model.toJSON() );
-        this.$el.find('.add-contact').hide();
-    },
-    openAddModal: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('.add-contact').show();
-    },
-    closeAddModal: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('.add-contact').hide();
+        const addView = new AddContactBtnView( this.collection );
+        addView.render();
     }
 });
 const LinkBtnView = Backbone.View.extend({
@@ -458,6 +599,7 @@ const LinkBtnView = Backbone.View.extend({
         this.$el.find('.add-link').hide();
     }
 });
+
 const ProfileView = Backbone.View.extend({
     el: "#profile",
     model: new (Backbone.Model.extend({
@@ -525,15 +667,17 @@ const ProfileView = Backbone.View.extend({
         this.$el.find(".basic-info .name").val( this.model.get("info").name );
         this.$el.find(".basic-info .about").val( this.model.get("info").about );
         this.$el.find("#profile-theme").val( this.model.get("theme") ).change();
-        if( !this.socials )
-            this.socials = new SocialBtnView();
-        if( !this.contacts )
-            this.contacts = new ContactBtnView();
+        if( !this.socials ) {
+            this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: true });
+            this.$el.find(".social-btns").html( this.socials.render() );
+        }
+        if( !this.contacts ) {
+            this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: true });
+            this.$el.find(".contact-btns").html( this.contacts.render() );
+        }
         if( !this.links )
-            this.links = new LinkBtnView();
+            this.links = new LinkBtnView( this.model.get("links") );
 
-        this.socials.model.add( this.model.get("socials").sort( (a,b) => a.index - b.index ) );
-        this.contacts.model.add( this.model.get("contacts").sort( (a,b) => a.index - b.index ) );
         this.links.model.add( this.model.get("links").sort( (a,b) => a.index - b.index ) );
 
         return this;
@@ -630,7 +774,7 @@ const ProfileView = Backbone.View.extend({
         let newObj = {
             info: basicInfo,
             contacts: this.contacts.model.toJSON(),
-            socials: this.socials.model.toJSON(),
+            socials: this.socials.collection.toJSON(),
             links: this.links.model.toJSON(),
             theme: self.$el.find("#profile-theme").val()
         };
@@ -732,6 +876,7 @@ const ProfileView = Backbone.View.extend({
         });
     }
 });
+
 const PublicProfileView = Backbone.View.extend({
     el: "#public-profile",
     socialTemplte: _.template(`<a target="_blank" href="<%= url %>" class="w3-xlarge w3-card w3-circle w3-button w3-theme"><i class="fa fa-<%= icon %>"></i></a>`),
