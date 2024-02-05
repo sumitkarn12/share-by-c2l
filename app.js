@@ -845,7 +845,7 @@ const ProfileView = Backbone.View.extend({
         this.contacts =  null;
         this.links = null;
 
-        if ( profile ===  0  ) {
+        if ( profileId ==  0  ) {
 
             this.model.set({
                 info: {
@@ -906,9 +906,13 @@ const ProfileView = Backbone.View.extend({
         };
         delete basicInfo.theme;
         $(ev.currentTarget).prepend(`<i class='fa fa-refresh fa-spin'></i> `);
+        let prevId = this.model.get('id');
         this.model.save(newObj,{
             success: function() {
                 $(ev.currentTarget).find('.fa').remove();
+                if ( !prevId ) {
+                    Util.getProfiles().model.add( self.model );
+                }
                 router.navigate("/");
             },
             error: function() {
