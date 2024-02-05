@@ -495,7 +495,7 @@ const ContactBtnView = Backbone.View.extend({
 const ContactBtnsView = Backbone.View.extend({
     tagName: "div",
     template: `<div class="btns"></div>
-        <div class='w3-center w3-margin-bottom w3-margin-top'>
+        <div class='w3-center w3-margin-bottom w3-margin-top add-btn-wrapper'>
             <button class="w3-button w3-round-xxlarge w3-theme add"><i class="fa fa-plus"></i> Add new contact</button>
         </div>`,
     events: {
@@ -519,7 +519,7 @@ const ContactBtnsView = Backbone.View.extend({
         this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
         this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
         this.collection.add( collection );
-        ( isEditable )?this.$el.find('.add').show():this.$el.find('.add').hide()
+        ( isEditable )?this.$el.find('.add-btn-wrapper').show():this.$el.find('.add-btn-wrapper').hide()
     },
     render: function() {
         return this.el;
@@ -538,68 +538,175 @@ const ContactBtnsView = Backbone.View.extend({
         addView.render();
     }
 });
+
+// Add Single Link Button to a collection
+const AddLinkBtnView = Backbone.View.extend({
+    tagName: 'div',
+    className: 'w3-modal',
+    template: `<div class="w3-modal-content w3-animate-zoom">
+        <div class="w3-large w3-container w3-padding-16 w3-theme">Add Link</div>
+        <div class="w3-container w3-padding-16">
+            <form action="#">
+                <label>Title</label>
+                <input type="text" name="title" class="w3-input w3-border w3-round-xxlarge" />
+                <div class="w3-section"></div>
+                <label>URL</label>
+                <input type="text" name="url" class="w3-input w3-border w3-round-xxlarge" />
+                <div class="w3-section"></div>
+                <button class="w3-button w3-right w3-round-xxlarge w3-theme submit-btn">Add</button>
+                <button class="w3-button w3-left w3-round-xxlarge cancel-btn">Cancel</button>
+            </form>    
+        </div>
+    </div>`,
+    events: {
+        'submit form': 'add',
+        'click .cancel-btn': 'close'
+    },
+    initialize: function( collection ) {
+        this.collection = collection;
+        this.$el.html( this.template );
+        document.querySelector('body').append( this.el );
+        return this;
+    },
+    add: function( ev ) {
+        ev.preventDefault();
+        let newBtn = {};
+        newBtn.title = ev.currentTarget.querySelector('[name=title]').value;
+        newBtn.url = ev.currentTarget.querySelector('[name=url]').value;
+        newBtn.index = Math.max( ...this.collection.toJSON().map( a => a.index ) ) + 1;
+        if ( newBtn.index == -Infinity )
+            newBtn.index = 1;
+        this.collection.add( newBtn );
+        this.close( ev );
+    },
+    close: function( ev ) {
+        ev.preventDefault();
+        this.$el.remove();
+    },
+    render: function() {
+        this.$el.show();
+        return this.el;
+    }
+});
+// Single Link Button from a collection
 const LinkBtnView = Backbone.View.extend({
-    el: "#profile .link-btns",
-    template: _.template(`<span class='link-btn-<%=index%> w3-display-container btn-container'>
+    tagName: 'span',
+    className: 'w3-display-container btn-container',
+    template: _.template(`
         <a target="_blank" href="<%= url %>" class="w3-bar-item w3-button w3-block w3-padding-16">
             <i class="fa fa-link"></i> <%= title %>
         </a>
         <button data-index="<%= index %>" class='w3-card remove w3-button w3-theme w3-display-right w3-margin-right w3-round-xxlarge'>&times;</button>
-    </span>`),
+    `),
     events: {
-        'click .remove': 'remove',
-        "click .add": "openAddModal",
-        "submit .add-link form": "add",
-        "click .add-link .cancel-btn": "closeAddModal"
+        'click .remove': 'remove'
     },
-    model: Backbone.Collection.extend({
-        model: Backbone.Model.extend({
-            idAttribute: 'index'
-        })
-    }),
-    initialize: function() {
-        const self = this;
-        this.model = new this.model();
-        this.model.on('add', m => { self.showLink( m ) });
-        this.model.on('reset', () => { self.$el.find('.btns').empty(); });
-        this.model.on('remove', m => {
-            self.$el.find(`.link-btn-${m.get('index')}`).remove();
-        });
-    },
-    render: function() {
-        this.$el.find('.btns').empty();
-    },
-    showLink: function( el ) {        
-        this.$el.find('.btns').append( this.template( el.toJSON() ) );
+    initialize: function({ model, collection, isEditable }) {
+        this.model = model;
+        this.collection = collection;
+
+        this.el.classList.add(`link-btn-${this.model.get('index')}`);
+        let card = this.template( this.model.toJSON() );
+        this.$el.append( card );
+        if( !isEditable )
+            this.$el.find('.remove').remove();
+        return this;
     },
     remove: function( ev ) {
         ev.preventDefault();
-        let index = ev.currentTarget.dataset.index;
-        this.model.remove( index );
+        this.$el.remove();
+        this.collection.remove( this.model );
+    },
+    render: function() {
+        return this.el;
+    }
+});
+// Collection of Link Buttons
+const LinkBtnsView = Backbone.View.extend({
+    tagName: "div",
+    template: `<div class="btns"></div>
+    <div class='w3-center w3-margin-bottom w3-margin-top add-btn-wrapper'>
+        <button class="w3-round-xxlarge w3-button w3-theme add"><i class="fa fa-plus"></i> Add new link</button>
+    </div>`,
+    events: {
+        "click .add": "add"
+    },
+    initialize: function({ collection, isEditable }) {
+        this.$el.html( this.template );
+        const self = this;
+        const Btns = Backbone.Collection.extend({
+            model: Backbone.Model.extend({
+                idAttribute: 'index'
+            })
+        });
+        collection = collection.sort( (a,b)=> a.index - b.index );
+        this.collection = new Btns();
+        this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
+        this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
+        this.collection.add( collection );
+        ( isEditable )?this.$el.find('.add-btn-wrapper').show():this.$el.find('.add-btn-wrapper').hide()
+    },
+    render: function() {
+        return this.el;
+    },
+    addBtn: function({ model: model, isEditable: isEditable }) {
+        const btnCard = new LinkBtnView({
+            model: model,
+            collection: this.collection,
+            isEditable: isEditable
+        });
+        this.$el.find('.btns').append( btnCard.render() );
     },
     add: function( ev ) {
         ev.preventDefault();
-        console.log( "Adding" )
-        let newBtn = {};
-        newBtn.title = ev.currentTarget.querySelector('[name=title]').value;
-        newBtn.url = ev.currentTarget.querySelector('[name=url]').value;
-        newBtn.index = Math.max( ...this.model.toJSON().map( a => a.index ) ) + 1;
-        if ( newBtn.index == -Infinity )
-            newBtn.index = 1;
-        this.model.add( newBtn );
-        console.log( this.model.toJSON() );
-        this.$el.find('.add-link').hide();
-    },
-    openAddModal: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('.add-link').show();
-    },
-    closeAddModal: function( ev ) {
-        ev.preventDefault();
-        this.$el.find('.add-link').hide();
+        const addLink = new AddLinkBtnView( this.collection );
+        addLink.render();
     }
 });
 
+
+// Collection of Link Buttons
+const BasicDetailView = Backbone.View.extend({
+    tagName: "div",
+    template: `<div class="btns"></div>
+    <div class='w3-center w3-margin-bottom w3-margin-top add-btn-wrapper'>
+        <button class="w3-round-xxlarge w3-button w3-theme add"><i class="fa fa-plus"></i> Add new link</button>
+    </div>`,
+    events: {
+        "click .add": "add"
+    },
+    initialize: function({ collection, isEditable }) {
+        this.$el.html( this.template );
+        const self = this;
+        const Btns = Backbone.Collection.extend({
+            model: Backbone.Model.extend({
+                idAttribute: 'index'
+            })
+        });
+        collection = collection.sort( (a,b)=> a.index - b.index );
+        this.collection = new Btns();
+        this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
+        this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
+        this.collection.add( collection );
+        ( isEditable )?this.$el.find('.add-btn-wrapper').show():this.$el.find('.add-btn-wrapper').hide()
+    },
+    render: function() {
+        return this.el;
+    },
+    addBtn: function({ model: model, isEditable: isEditable }) {
+        const btnCard = new LinkBtnView({
+            model: model,
+            collection: this.collection,
+            isEditable: isEditable
+        });
+        this.$el.find('.btns').append( btnCard.render() );
+    },
+    add: function( ev ) {
+        ev.preventDefault();
+        const addLink = new AddLinkBtnView( this.collection );
+        addLink.render();
+    }
+});
 const ProfileView = Backbone.View.extend({
     el: "#profile",
     model: new (Backbone.Model.extend({
@@ -661,24 +768,24 @@ const ProfileView = Backbone.View.extend({
             }
         });
     },
-    renderInfo: function() {
+    renderInfo: function( isEditable = true ) {
         this.$el.find(".image-card .avatar").attr( "src", this.model.get("info").image );
         this.$el.find(".image-card .avatar").attr( "alt", this.model.get("info").name );
         this.$el.find(".basic-info .name").val( this.model.get("info").name );
         this.$el.find(".basic-info .about").val( this.model.get("info").about );
         this.$el.find("#profile-theme").val( this.model.get("theme") ).change();
         if( !this.socials ) {
-            this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: true });
+            this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: isEditable });
             this.$el.find(".social-btns").html( this.socials.render() );
         }
         if( !this.contacts ) {
-            this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: true });
+            this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: isEditable });
             this.$el.find(".contact-btns").html( this.contacts.render() );
         }
-        if( !this.links )
-            this.links = new LinkBtnView( this.model.get("links") );
-
-        this.links.model.add( this.model.get("links").sort( (a,b) => a.index - b.index ) );
+        if( !this.links ) {
+            this.links = new LinkBtnsView({ collection: this.model.get("links"), isEditable: isEditable });
+            this.$el.find(".link-btns").html( this.links.render() );
+        }
 
         return this;
     },
@@ -773,9 +880,9 @@ const ProfileView = Backbone.View.extend({
         basicInfo.about = this.$el.find('.basic-info .about').val().trim();
         let newObj = {
             info: basicInfo,
-            contacts: this.contacts.model.toJSON(),
+            contacts: this.contacts.collection.toJSON(),
             socials: this.socials.collection.toJSON(),
-            links: this.links.model.toJSON(),
+            links: this.links.collection.toJSON(),
             theme: self.$el.find("#profile-theme").val()
         };
         $(ev.currentTarget).prepend(`<i class='fa fa-refresh fa-spin'></i> `);
