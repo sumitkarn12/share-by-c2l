@@ -59,8 +59,11 @@ html, body, h1,h2,h3,h4,h5,h6 {
     width: 180px;
     margin: auto;
 }
-#profile .image-card img,#public-profile .image-card img {
+#profile .image-card img {
     width: 180px;
+}
+#public-profile .image-card img {
+    width: 240px;
 }
 #profile .social-btns .btns, #profile .btn-wrapper, #public-profile .social-btns .btns {
     display: flex;

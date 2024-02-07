@@ -361,7 +361,7 @@ const SocialBtnsView = Backbone.View.extend({
         this.collection.on('add', m => { self.addBtn({ model: m, isEditable: isEditable }) });
         this.collection.on('reset', () => { self.$el.find('.btns').empty(); });
         this.collection.add( collection );
-        ( isEditable )?this.$el.find('.add').show():this.$el.find('.add').hide()
+        ( isEditable )?this.$el.find('.add').show():this.$el.find('.add').hide();
     },
     addBtn: function({ model, isEditable }) {
         let btnCard = new SocialBtnView({
@@ -1009,9 +1009,6 @@ const ProfileView = Backbone.View.extend({
 
 const PublicProfileView = Backbone.View.extend({
     el: "#public-profile",
-    socialTemplte: _.template(`<a target="_blank" href="<%= url %>" class="w3-xlarge w3-card w3-circle w3-button w3-theme"><i class="fa fa-<%= icon %>"></i></a>`),
-    contactTemplate: _.template(`<a target="_blank" href="<%= url %>" class="w3-bar-item w3-button w3-block w3-padding-16"><i class="fa fa-<%= icon %>"></i> <%= value %></a>`),
-    linkTemplate: _.template(`<a target="_blank" href="<%= url %>" class="w3-bar-item w3-button w3-block w3-padding-16"><i class="fa fa-link"></i> <%= title %></a>`),
     model: new (Backbone.Model.extend({
         url: function() {
             let a = `${apiUrl}/map`;
@@ -1046,18 +1043,20 @@ const PublicProfileView = Backbone.View.extend({
         });
     },
     renderInfo: function() {
+        document.querySelector('#link-rel').setAttribute('href', this.model.get("theme") );
+        document.querySelector('#shortcut-icon').setAttribute('href', this.model.get("info").image );
+        document.querySelector('title').innerText = `${this.model.get('info').name} || ${this.model.get('info').about}`;
+        document.querySelector('meta[name=description]').setAttribute('content', this.model.get('info').about);
+
         this.$el.find(".image-card .avatar").attr( "src", this.model.get("info").image );
         this.$el.find(".image-card .avatar").attr( "alt", this.model.get("info").name );
         this.$el.find(".basic-info .name").text( this.model.get("info").name );
         this.$el.find(".basic-info .about").html( this.model.get("info").about );
-        document.querySelector('#link-rel').setAttribute('href', this.model.get("theme") );
+
         this.downloadContactCard();
 
         this.$el.find('.btns').empty();
         this.renderSocialMedia().renderContacts().renderLinks();
-
-        document.querySelector('title').innerText = `${this.model.get('info').name} || ${this.model.get('info').about}`;
-        document.querySelector('meta[name=description]').getAttribute('content', this.model.get('info').about);
 
         return this;
     },
@@ -1067,9 +1066,8 @@ const PublicProfileView = Backbone.View.extend({
             this.$el.find('#social').show();
         else
             this.$el.find('#social').hide();
-        this.model.get('socials').sort((a,b) => a.index - b.index).forEach( s => {
-            self.$el.find('.social-btns .btns').append( self.socialTemplte( s ) );
-        });
+        this.socials = new SocialBtnsView({ collection: this.model.get("socials"), isEditable: false });
+        this.$el.find(".social-btns").html( this.socials.render() );
         return this;
     },
     renderContacts: function() {
@@ -1078,9 +1076,8 @@ const PublicProfileView = Backbone.View.extend({
             this.$el.find('#contact').show();
         else
             this.$el.find('#contact').hide();
-        this.model.get('contacts').sort( (a,b) => a.index - b.index ).forEach( s => {
-            self.$el.find('.contact-btns .btns').append( self.contactTemplate( s ) );
-        });
+        this.contacts = new ContactBtnsView({ collection: this.model.get("contacts"), isEditable: false });
+        this.$el.find(".contact-btns").html( this.contacts.render() );
         return this;
     },
     renderLinks: function() {
@@ -1090,9 +1087,8 @@ const PublicProfileView = Backbone.View.extend({
         } else {
             this.$el.find('#link').hide();
         }
-        this.model.get('links').sort( (a, b) => a.index - b.index ).forEach( s => {
-            self.$el.find('.link-btns .btns').append( self.linkTemplate( s ) );
-        });
+        this.links = new LinkBtnsView({ collection: this.model.get("links"), isEditable: false });
+        this.$el.find(".link-btns").html( this.links.render() );
         return this;
     },
     downloadContactCard: function() {
