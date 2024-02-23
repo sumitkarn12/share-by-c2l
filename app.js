@@ -204,7 +204,12 @@ const ProfileChooserView = Backbone.View.extend({
             success: function() {
                 router.updatePageLinks();
             },
-            error: function() {
+            error: function( collections, jqEvents ) {
+                if( jqEvents.status == 401 ) {
+                    let d = new Dialog( jqEvents.responseJSON.message );
+                    d.setContent("<p class='w3-container w3-padding-16'>Please logout and login again.</p>");
+                    d.render();
+                }
                 self.$el.find('.loader').remove();
                 self.$el.find('#profile-list').html( `<li class='w3-large'>No profile to show. Create a new profile.</li>` );
             }
